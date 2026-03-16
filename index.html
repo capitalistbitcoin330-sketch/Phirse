@@ -1,0 +1,219 @@
+<!doctype html>
+<html lang="en" class="h-full">
+ <head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ATT OCK FOOD HUB</title>
+  <script src="https://cdn.tailwindcss.com/3.4.17"></script>
+  <script src="https://cdn.jsdelivr.net/npm/lucide@0.263.0/dist/umd/lucide.min.js"></script>
+  <script src="/_sdk/element_sdk.js"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;700;900&amp;family=DM+Sans:wght@300;400;500;600;700&amp;display=swap" rel="stylesheet">
+  <style>
+    html, body { height: 100%; margin: 0; font-family: 'DM Sans', sans-serif; }
+    * { box-sizing: border-box; }
+    .font-display { font-family: 'Playfair Display', serif; }
+
+    .hero-bg {
+      background: linear-gradient(135deg, #5c0a0a 0%, #8b1a1a 25%, #6b0f0f 50%, #a01c1c 75%, #4a0808 100%);
+      background-size: 400% 400%;
+      animation: heroShift 12s ease infinite;
+    }
+    @keyframes heroShift {
+      0% { background-position: 0% 50%; }
+      50% { background-position: 100% 50%; }
+      100% { background-position: 0% 50%; }
+    }
+
+    .title-char { display: inline-block; transition: transform 0.3s, color 0.3s; }
+    .title-char:hover { transform: translateY(-8px) scale(1.15); color: #fbbf24; }
+
+    .screen { display: none; opacity: 0; transition: opacity 0.5s ease; }
+    .screen.active { display: block; opacity: 1; }
+
+    .food-card { transition: transform 0.35s ease, box-shadow 0.35s ease; }
+    .food-card:hover { transform: translateY(-6px); box-shadow: 0 20px 40px rgba(139,26,26,0.15); }
+
+    .stagger-in { opacity: 0; transform: translateY(24px); animation: staggerUp 0.5s ease forwards; }
+    @keyframes staggerUp { to { opacity: 1; transform: translateY(0); } }
+
+    .loader-ring { width: 48px; height: 48px; border: 4px solid rgba(255,255,255,0.2); border-top-color: #fff; border-radius: 50%; animation: spin 0.8s linear infinite; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    .side-menu { transform: translateX(-100%); transition: transform 0.35s ease; }
+    .side-menu.open { transform: translateX(0); }
+
+    .transition-overlay { position: fixed; inset: 0; z-index: 9999; display: flex; align-items: center; justify-content: center; background: linear-gradient(135deg, #5c0a0a, #8b1a1a); opacity: 0; pointer-events: none; transition: opacity 0.4s ease; }
+    .transition-overlay.active { opacity: 1; pointer-events: all; }
+  </style>
+ </head>
+ <body class="h-full bg-white text-gray-800 overflow-auto">
+
+  <div id="transitionOverlay" class="transition-overlay">
+   <div class="text-center">
+    <div class="loader-ring mx-auto mb-4"></div>
+    <p class="text-white text-lg font-medium">Loading your food journey...</p>
+   </div>
+  </div>
+
+  <div id="toastContainer" class="fixed top-4 right-4 z-50 flex flex-col gap-2"></div>
+
+  <div id="screenHero" class="screen active">
+   <div class="hero-bg min-h-full flex flex-col items-center justify-center px-4 text-center">
+     <h1 id="heroTitle" class="font-display text-5xl md:text-8xl font-900 text-white mb-6"></h1>
+     <p id="heroSubtitle" class="text-white/80 text-lg max-w-xl mb-10">Discover the finest flavors of Attock.</p>
+     <div class="flex gap-4">
+       <button onclick="showScreen('screenLogin')" class="bg-white text-red-900 font-semibold px-8 py-3 rounded-full">Sign In</button>
+       <button onclick="showScreen('screenSignup')" class="border-2 border-white/40 text-white font-semibold px-8 py-3 rounded-full">Sign Up</button>
+     </div>
+   </div>
+  </div>
+
+  <div id="screenMain" class="screen">
+   <nav id="sideMenu" class="side-menu fixed left-0 top-0 bottom-0 w-72 bg-white shadow-2xl z-50">
+    <div class="p-6 bg-red-800 text-white">
+      <div class="flex items-center gap-3">
+        <div id="menuAvatar" class="w-12 h-12 bg-white/20 rounded-full flex items-center justify-center font-bold text-xl">U</div>
+        <p id="menuUserName" class="font-semibold">User</p>
+      </div>
+    </div>
+    <div class="py-4">
+      <button onclick="navigateTo('home')" class="w-full text-left px-6 py-3 hover:bg-red-50 flex items-center gap-3"><i data-lucide="home"></i> Home</button>
+      <button onclick="navigateTo('settings')" class="w-full text-left px-6 py-3 hover:bg-red-50 flex items-center gap-3"><i data-lucide="settings"></i> Settings</button>
+      <button onclick="navigateTo('help')" class="w-full text-left px-6 py-3 hover:bg-red-50 flex items-center gap-3"><i data-lucide="help-circle"></i> Help</button>
+      <button onclick="handleLogout()" class="w-full text-left px-6 py-3 text-red-600 hover:bg-red-50 flex items-center gap-3"><i data-lucide="log-out"></i> Sign Out</button>
+    </div>
+   </nav>
+
+   <header class="sticky top-0 z-30 bg-red-900 text-white p-4 flex justify-between items-center">
+    <button onclick="toggleMenu()"><i data-lucide="menu"></i></button>
+    <h1 class="font-display font-bold">ATT OCK FOOD HUB</h1>
+    <div class="flex gap-3">
+      <button onclick="navigateTo('cart')"><i data-lucide="shopping-cart"></i></button>
+    </div>
+   </header>
+
+   <main id="mainContent" class="min-h-full bg-gray-50"></main>
+  </div>
+
+  <script>
+    let currentUser = null;
+    let cart = [];
+
+    // DATA
+    const allPlaces = [
+      { id:'s1', name:'Chacha Tikka House', emoji:'🔥', cuisine:'BBQ', rating:4.7, price:'PKR 150-500', hours:'5PM-1AM', desc:'Legendary tikka.' },
+      { id:'r1', name:'The Attock Grill', emoji:'🍽️', cuisine:'Continental', rating:4.6, price:'PKR 500-2500', hours:'12PM-11PM', desc:'Fine dining.' }
+    ];
+
+    function showScreen(id) {
+      document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+      document.getElementById(id).classList.add('active');
+      lucide.createIcons();
+    }
+
+    function handleLogin(e) {
+      currentUser = { name: "Shah", email: "shah@example.com" };
+      showScreen('screenMain');
+      navigateTo('home');
+    }
+
+    function toggleMenu() { document.getElementById('sideMenu').classList.toggle('open'); }
+
+    function navigateTo(view) {
+      const mc = document.getElementById('mainContent');
+      if (document.getElementById('sideMenu').classList.contains('open')) toggleMenu();
+      
+      if(view === 'home') renderHome(mc);
+      else if(view === 'settings') renderSettings(mc);
+      else if(view === 'help') renderHelp(mc);
+      else if(view === 'terms') renderTerms(mc);
+      
+      lucide.createIcons();
+    }
+
+    function renderHome(mc) {
+      mc.innerHTML = `<div class="p-6">
+        <h2 class="text-2xl font-bold mb-4">Welcome, ${currentUser?.name}!</h2>
+        <div class="grid gap-4">${allPlaces.map(p => `
+          <div class="bg-white p-4 rounded-xl shadow-sm border border-gray-100 flex justify-between items-center">
+            <div><span class="text-2xl">${p.emoji}</span> <b>${p.name}</b></div>
+            <button class="text-red-800 text-sm font-bold">View</button>
+          </div>
+        `).join('')}</div>
+      </div>`;
+    }
+
+    // ==================== YOUR FIXED FUNCTIONS ====================
+
+    function renderSettings(mc) {
+      mc.innerHTML = `
+      <div class="px-4 py-6 max-w-3xl mx-auto stagger-in">
+        <button onclick="navigateTo('home')" class="flex items-center gap-1 text-gray-500 hover:text-gray-700 text-sm mb-6 transition-colors">
+          <i data-lucide="arrow-left" style="width:16px;height:16px;"></i> Home
+        </button>
+        <h2 class="font-display text-3xl font-bold text-gray-900 mb-6 flex items-center gap-3">
+          <i data-lucide="settings" style="width:26px;height:26px;" class="text-red-800"></i> Settings
+        </h2>
+        <div class="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+          <div class="p-8 flex flex-col items-center border-b border-gray-50 text-center">
+            <div class="w-20 h-20 bg-gradient-to-br from-red-800 to-red-600 text-white rounded-full flex items-center justify-center text-3xl font-bold mb-4 shadow-lg">
+              ${(currentUser?.name || 'U').charAt(0).toUpperCase()}
+            </div>
+            <h3 class="text-xl font-bold text-gray-900">${currentUser?.name || 'Guest User'}</h3>
+            <p class="text-gray-500 text-sm mb-6">${currentUser?.email || 'No email provided'}</p>
+            <button onclick="handleLogout()" class="bg-red-800 text-white px-8 py-2.5 rounded-xl text-sm font-semibold hover:bg-red-700 transition-all flex items-center gap-2">
+              <i data-lucide="log-out" style="width:16px;height:16px;"></i> Sign Out
+            </button>
+          </div>
+        </div>
+      </div>`;
+      lucide.createIcons();
+    }
+
+    function renderHelp(mc) {
+      mc.innerHTML = `
+      <div class="px-4 py-6 max-w-3xl mx-auto stagger-in">
+        <button onclick="navigateTo('home')" class="flex items-center gap-1 text-gray-500 hover:text-gray-700 text-sm mb-6">
+          <i data-lucide="arrow-left" style="width:16px;height:16px;"></i> Home
+        </button>
+        <h2 class="font-display text-3xl font-bold text-gray-900 mb-6 flex items-center gap-3">
+          <i data-lucide="help-circle" style="width:26px;height:26px;" class="text-red-800"></i> Help Centre
+        </h2>
+        <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
+          <h3 class="font-bold text-gray-900 mb-4 border-b pb-2">How to use Attock Food Hub</h3>
+          <ul class="space-y-4">
+            <li class="flex items-center gap-3 text-sm text-gray-600">
+              <div class="w-8 h-8 bg-red-50 text-red-800 rounded-full flex items-center justify-center flex-shrink-0"><i data-lucide="search" style="width:14px;height:14px;"></i></div>
+              <span>Search food places using the <b>Search Bar</b>.</span>
+            </li>
+          </ul>
+        </div>
+      </div>`;
+      lucide.createIcons();
+    }
+
+    function renderTerms(mc) {
+      mc.innerHTML = `
+      <div class="px-4 py-6 max-w-3xl mx-auto stagger-in">
+        <button onclick="navigateTo('home')" class="flex items-center gap-1 text-gray-500 hover:text-gray-700 text-sm mb-6">
+          <i data-lucide="arrow-left" style="width:16px;height:16px;"></i> Home
+        </button>
+        <h2 class="font-display text-3xl font-bold text-gray-900 mb-6 flex items-center gap-3">
+          <i data-lucide="file-text" style="width:26px;height:26px;" class="text-red-800"></i> Terms & Policies
+        </h2>
+        <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-8 text-sm text-gray-600 space-y-6">
+          <p class="border-l-4 border-red-800 pl-4 italic">Attock Food Hub helps you explore local food spots.</p>
+          <div class="pt-6 border-t text-center text-xs text-gray-400">© 2025 Att Ock Food Hub. Crafted by Muhammad Shahzad</div>
+        </div>
+      </div>`;
+      lucide.createIcons();
+    }
+
+    function handleLogout() { currentUser = null; showScreen('screenHero'); }
+
+    // Init title
+    document.getElementById('heroTitle').innerText = "ATT OCK FOOD HUB";
+    lucide.createIcons();
+  </script>
+ </body>
+</html>
